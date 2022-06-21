@@ -19,10 +19,24 @@ var search = require('./doc-embed/search');
         }
     }
 
-    domReady(function () {
+    // Inject JQuery if isn't present already.
+    function injectJQuery(fn) {
+        if (!window.jQuery) {
+            let script = document.createElement("script");
+            document.head.appendChild(script);
+            script.type = 'text/javascript';
+            script.src = "https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js";
+            script.onload = fn;
+        } else {
+          fn();
+        }
+    }
+
+    function init() {
         footer.init();
         sphinx.init();
         search.init();
         sponsorship.init();
-    });
+    }
+    domReady(injectJQuery(init));
 }());

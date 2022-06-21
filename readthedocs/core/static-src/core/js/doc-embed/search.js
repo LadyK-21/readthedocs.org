@@ -50,7 +50,7 @@ function attach_elastic_search_query_sphinx(data) {
         var search_url = document.createElement('a');
 
         search_url.href = data.proxied_api_host + '/api/v2/search/';
-        search_url.search = '?q=' + $.urlencode(query) + '&project=' + project +
+        search_url.search = '?q=' + encodeURIComponent(query) + '&project=' + project +
                             '&version=' + version + '&language=' + language;
 
         /*
@@ -62,6 +62,21 @@ function attach_elastic_search_query_sphinx(data) {
           } else {
             node.innerText = text;
           }
+        };
+
+        var buildSection = function (title, link, content) {
+          var div_title = document.createElement("div");
+          var a_element = document.createElement("a");
+          a_element.href = link;
+          a_element.innerHTML = title;
+          div_title.appendChild(a_element);
+          html = div_title.outerHTML
+          for (var i = 0; i < content.length; i++) {
+              var div_content = document.createElement("div");
+              div_content.innerHTML = content[i];
+              html += div_content.outerHTML;
+          }
+          return html;
         };
 
         search_def
@@ -80,7 +95,7 @@ function attach_elastic_search_query_sphinx(data) {
                             title = xss(result.highlights.title[0]);
                         }
 
-                        var link = result.path + "?highlight=" + $.urlencode(query);
+                        var link = result.path + "?highlight=" + encodeURIComponent(query);
 
                         var item = $('<a>', {'href': link});
 
@@ -126,7 +141,7 @@ function attach_elastic_search_query_sphinx(data) {
                             if (current_block.type === "section") {
                                 var section = current_block;
                                 var section_subtitle = section.title;
-                                var section_subtitle_link = link + "#" + section.id;
+                                var section_subtitle_link = xss(link + "#" + section.id);
                                 var section_content = [section.content.substr(0, MAX_SUBSTRING_LIMIT) + " ..."];
 
                                 if (section.highlights.title.length) {
@@ -145,15 +160,11 @@ function attach_elastic_search_query_sphinx(data) {
                                     }
                                 }
 
-                                append_html_to_contents(
-                                    contents,
-                                    section_template,
-                                    {
-                                        section_subtitle_link: section_subtitle_link,
-                                        section_subtitle: section_subtitle,
-                                        section_content: section_content
-                                    }
-                                );
+                                contents.append(buildSection(
+                                    section_subtitle,
+                                    section_subtitle_link,
+                                    section_content
+                                ));
                             }
 
                             // if the result is a sphinx domain object
