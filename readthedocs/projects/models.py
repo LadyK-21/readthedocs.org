@@ -4,6 +4,7 @@ import fnmatch
 import hashlib
 import hmac
 import os
+import re
 from shlex import quote
 from urllib.parse import urlparse
 
@@ -403,6 +404,13 @@ class Project(models.Model):
             "Should builds from pull requests be public? <strong>If your repository is public, don't set this to private</strong>."
         ),
     )
+    show_build_overview_in_comment = models.BooleanField(
+        _("Show build overview in a comment"),
+        db_default=False,
+        help_text=_(
+            "Show an overview of the build and files changed in a comment when a pull request is built."
+        ),
+    )
 
     # Project features
     cdn_enabled = models.BooleanField(_("CDN Enabled"), default=False)
@@ -610,6 +618,14 @@ class Project(models.Model):
             "http://www.sphinx-doc.org/en/stable/builders.html#sphinx.builders.html."
             'DirectoryHTMLBuilder">More info on sphinx builders</a>.',
         ),
+    )
+
+    # Keep track if the SSH key has write access or not (RTD Business),
+    # so we can take further actions if needed.
+    has_ssh_key_with_write_access = models.BooleanField(
+        help_text=_("Project has an SSH key with write access"),
+        default=False,
+        null=True,
     )
 
     # Property used for storing the latest build for a project when prefetching
@@ -888,6 +904,17 @@ class Project(models.Model):
         # form to validate it's an HTTPS URL when importing new ones
         if self.repo.startswith("http://github.com"):
             return self.repo.replace("http://github.com", "https://github.com")
+        return self.repo
+
+    @property
+    def repository_html_url(self):
+        if self.remote_repository:
+            return self.remote_repository.html_url
+
+        ssh_url_pattern = re.compile(r"^(?P<user>.+)@(?P<host>.+):(?P<repo>.+)$")
+        match = ssh_url_pattern.match(self.repo)
+        if match:
+            return f"https://{match.group('host')}/{match.group('repo')}"
         return self.repo
 
     # Doc PATH:
